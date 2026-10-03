@@ -1,0 +1,49 @@
+name: LiveCut 01 review download
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Resolve authorized Drive source
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.parse
+          from html.parser import HTMLParser
+          from pathlib import Path
+          url='https://drive.google.com/uc?export=download&id=1jK9hWvU7-1r7X5qBVDzCP9CMP7uc07J3'
+          with urllib.request.urlopen(url, timeout=60) as r:
+              page=r.read(1024*1024).decode()
+          class Form(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.action=''; self.fields={}
+              def handle_starttag(self, tag, attrs):
+                  d=dict(attrs)
+                  if tag=='form': self.action=d.get('action','')
+                  if tag=='input' and 'name' in d: self.fields[d['name']]=d.get('value','')
+          form=Form(); form.feed(page)
+          if urllib.parse.urlsplit(form.action).hostname != 'drive.usercontent.google.com':
+              raise RuntimeError('Expected Google Drive download confirmation is missing')
+          Path('source-url.txt').write_text(form.action+'?'+urllib.parse.urlencode(form.fields))
+          PY
+      - name: Export selected excerpt
+        run: |
+          ffmpeg -nostdin -v error -ss 1787.90 -i "$(cat source-url.txt)" -t 36.80 \
+            -map 0:v:0 -map 0:a:0 -map_metadata -1 \
+            -c:v libx264 -threads 2 -preset fast -crf 20 -c:a aac -b:a 160k \
+            -movflags +faststart livecut-01-selected-clip.mp4
+      - name: Verify complete video
+        run: |
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate:format=duration,size -of json livecut-01-selected-clip.mp4
+          ffmpeg -nostdin -v error -i livecut-01-selected-clip.mp4 -f null -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: livecut-01-selected-clip
+          path: livecut-01-selected-clip.mp4
+          if-no-files-found: error
+          retention-days: 7
