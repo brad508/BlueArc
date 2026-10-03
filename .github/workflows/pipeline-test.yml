@@ -1,0 +1,31 @@
+name: BlueArc pipeline test
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HYPERFRAMES_NO_TELEMETRY: '1'
+      HYPERFRAMES_BROWSER_PATH: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+      - run: npm run doctor
+      - run: npm run check
+      - run: npm run render:test
+      - run: ffprobe -v error -show_streams -show_format exports/bluearc-pipeline-test.mp4
+      - run: ffmpeg -v error -i exports/bluearc-pipeline-test.mp4 -f null -
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bluearc-pipeline-test
+          path: exports/bluearc-pipeline-test.mp4
+          if-no-files-found: error

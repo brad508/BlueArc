@@ -1,0 +1,14 @@
+node_modules/
+exports/*
+!exports/.gitkeep
+inbox/*
+!inbox/.gitkeep
+raw-footage/*
+!raw-footage/.gitkeep
+.hyperframes/
+projects/pipeline-test/assets/gsap.min.js
+projects/pipeline-test/.hyperframes/
+projects/pipeline-test/renders/
+projects/pipeline-test/snapshots/
+.cache/
+.local-state/

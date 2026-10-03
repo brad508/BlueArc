@@ -1,0 +1,8 @@
+{
+  "name": "BlueArc Content OS",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "postCreateCommand": "npm ci",
+  "remoteUser": "node"
+}
